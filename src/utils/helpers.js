@@ -18,6 +18,7 @@ export const STORAGE_KEYS = {
   INVESTMENTS: 'finance-investments',
   SETTINGS: 'finance-settings',
   DEMO_MODE: 'finance-demo-mode',
+  THEME: 'finance-theme',
 };
 
 export const defaultCategories = {

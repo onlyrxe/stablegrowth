@@ -21,6 +21,10 @@ export const FinanceProvider = ({ children }) => {
   });
   const [initialized, setInitialized] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.THEME);
+    return saved === 'dark';
+  });
 
   useEffect(() => {
     const savedTransactions = loadData(STORAGE_KEYS.TRANSACTIONS, null);
@@ -135,6 +139,14 @@ export const FinanceProvider = ({ children }) => {
     saveData(STORAGE_KEYS.CATEGORIES, updatedCategories);
   };
 
+  const toggleDarkMode = () => {
+    setIsDarkMode(prev => {
+      const newVal = !prev;
+      saveData(STORAGE_KEYS.THEME, newVal ? 'dark' : 'light');
+      return newVal;
+    });
+  };
+
   return (
     <FinanceContext.Provider value={{
       transactions,
@@ -143,6 +155,8 @@ export const FinanceProvider = ({ children }) => {
       settings,
       initialized,
       isDemo,
+      isDarkMode,
+      toggleDarkMode,
       initApp,
       resetApp,
       addTransaction,

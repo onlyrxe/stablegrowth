@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, LineChart, Line, ComposedChart, CartesianGrid } from 'recharts';
 import { format, subMonths, isSameMonth, parseISO, startOfMonth, endOfMonth } from 'date-fns';
 import { TrendingUp, ArrowDownRight, ArrowUpRight, Wallet, PieChart as PieIcon, LineChart as LineIcon, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
@@ -10,7 +10,7 @@ import { addMonths } from 'date-fns';
 const COLORS = ['#10b981', '#34d399', '#94a3b8', '#cbd5e1', '#8b5cf6', '#ec4899', '#64748b'];
 
 const Dashboard = () => {
-  const { transactions, investments, settings } = useFinance();
+  const { transactions, investments, settings, isDarkMode } = useFinance();
   const [monthWindowOffset, setMonthWindowOffset] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
 
@@ -93,14 +93,21 @@ const Dashboard = () => {
   }, [monthTransactions]);
 
   const monthlyComparisonData = useMemo(() => {
-    const current = { month: 'Tháng này', income: stats.income, expense: stats.expense };
-    const lastMonthDate = subMonths(parseISO(selectedMonth + '-01'), 1);
-    const lastMonthStr = format(lastMonthDate, 'yyyy-MM');
-    const lastMonthTransactions = transactions.filter(t => t.date.startsWith(lastMonthStr));
-    const lastIncome = lastMonthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const lastExpense = lastMonthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    return [{ month: 'T-1', income: lastIncome, expense: lastExpense }, current];
-  }, [selectedMonth, transactions, stats]);
+    // Show 12 months leading up to and including selected month
+    return [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(offset => {
+      const d = subMonths(parseISO(selectedMonth + '-01'), offset);
+      const mStr = format(d, 'yyyy-MM');
+      const monthTransactions = transactions.filter(t => t.date.startsWith(mStr));
+      const income = monthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const expense = monthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+      return { 
+        month: format(d, 'MM/yy'), 
+        income, 
+        expense, 
+        net: income - expense 
+      };
+    }).reverse();
+  }, [selectedMonth, transactions]);
 
   const growthData = useMemo(() => {
     return [...investments].reverse().map(inv => ({
@@ -114,14 +121,20 @@ const Dashboard = () => {
       {/* Header & Filter */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Tổng quan tài chính</h1>
+          <h1 className={cn("text-xl font-bold tracking-tight", isDarkMode ? "text-slate-100" : "text-slate-900")}>Tổng quan tài chính</h1>
           <p className="text-xs text-slate-500 font-medium tracking-tight">Tháng {format(parseISO(selectedMonth + '-01'), 'MM, yyyy')}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm overflow-x-auto scrollbar-hide">
-          <div className="flex items-center gap-1 pr-1.5 border-r border-slate-100 mr-1">
+        <div className={cn(
+          "flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl shadow-sm overflow-x-auto scrollbar-hide border",
+          isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
+        )}>
+          <div className={cn("flex items-center gap-1 pr-1.5 border-r mr-1", isDarkMode ? "border-slate-800" : "border-slate-100")}>
             <button 
               onClick={() => navigateMonthWindow(1)}
-              className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-500 transition-all"
+              className={cn(
+                "p-1.5 rounded-lg transition-all",
+                isDarkMode ? "hover:bg-slate-800 text-slate-500 hover:text-emerald-400" : "hover:bg-slate-50 text-slate-400 hover:text-emerald-500"
+              )}
               title="Cũ hơn"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -134,8 +147,8 @@ const Dashboard = () => {
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all border whitespace-nowrap uppercase tracking-tighter",
                     selectedMonth === mStr 
-                      ? "bg-slate-900 border-slate-900 text-white" 
-                      : "bg-white border-slate-50 text-slate-400 hover:bg-slate-50"
+                      ? (isDarkMode ? "bg-emerald-500 border-emerald-500 text-slate-950" : "bg-slate-900 border-slate-900 text-white")
+                      : (isDarkMode ? "bg-slate-900 border-slate-800 text-slate-500 hover:bg-slate-800" : "bg-white border-slate-50 text-slate-400 hover:bg-slate-50")
                   )}
                 >
                   {label}
@@ -144,7 +157,10 @@ const Dashboard = () => {
             </div>
             <button 
               onClick={() => navigateMonthWindow(-1)}
-              className="p-1.5 hover:bg-slate-50 rounded-lg text-slate-400 hover:text-emerald-500 transition-all"
+              className={cn(
+                "p-1.5 rounded-lg transition-all",
+                isDarkMode ? "hover:bg-slate-800 text-slate-500 hover:text-emerald-400" : "hover:bg-slate-50 text-slate-400 hover:text-emerald-500"
+              )}
               title="Mới hơn"
             >
               <ChevronRight className="w-4 h-4" />
@@ -160,7 +176,12 @@ const Dashboard = () => {
                   setSelectedMonth(e.target.value);
                 }
               }}
-              className="text-[10px] font-black text-slate-600 bg-slate-50 border border-slate-100 rounded-lg focus:ring-2 focus:ring-emerald-500 cursor-pointer py-1.5 pl-3 pr-8 w-32 uppercase tracking-tighter hover:bg-slate-100 transition-colors"
+              className={cn(
+                "text-[10px] font-black cursor-pointer py-1.5 pl-3 pr-8 w-32 uppercase tracking-tighter transition-all border rounded-lg",
+                isDarkMode 
+                  ? "bg-slate-900 border-slate-800 text-slate-100 hover:bg-slate-800 focus:ring-emerald-500" 
+                  : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100 focus:ring-emerald-500"
+              )}
             />
             <div className="absolute right-2 pointer-events-none text-slate-400 group-hover:text-emerald-500 transition-colors">
               <ChevronDown className="w-3 h-3" />
@@ -176,24 +197,28 @@ const Dashboard = () => {
           amount={stats.net} 
           trend={stats.netTrend !== 0 ? `${stats.netTrend > 0 ? '↑' : '↓'} ${Math.abs(stats.netTrend).toFixed(1)}% so với tháng trước` : undefined}
           color="emerald"
+          isDarkMode={isDarkMode}
         />
         <StatCard 
           title="Tổng thu" 
           amount={stats.income} 
           progress={stats.income > 0 ? 100 : 0}
           color="slate"
+          isDarkMode={isDarkMode}
         />
         <StatCard 
           title="Tổng chi" 
           amount={stats.expense} 
           progress={stats.income > 0 ? Math.min(100, stats.expenseRate) : 0}
           color="rose"
+          isDarkMode={isDarkMode}
         />
         <StatCard 
           title="Đầu tư" 
           amount={stats.totalCurrentValue} 
           trend={stats.totalProfit !== 0 ? `${stats.totalProfit > 0 ? '+' : ''}${formatCurrency(stats.totalProfit)} lợi nhuận` : undefined}
           color="gradient"
+          isDarkMode={isDarkMode}
         />
       </div>
 
@@ -203,11 +228,17 @@ const Dashboard = () => {
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-[300px]"
+          className={cn(
+            "lg:col-span-4 p-5 rounded-2xl shadow-sm border flex flex-col h-[300px]",
+            isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"
+          )}
         >
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 text-sm">Cơ cấu chi tiêu</h3>
-            <span className="text-[10px] bg-slate-50 px-2 py-0.5 rounded font-bold text-slate-500 uppercase tracking-widest">Tháng này</span>
+            <h3 className={cn("font-bold text-sm", isDarkMode ? "text-slate-100" : "text-slate-800")}>Cơ cấu chi tiêu</h3>
+            <span className={cn(
+              "text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-widest",
+              isDarkMode ? "bg-slate-800 text-slate-400" : "bg-slate-50 text-slate-500"
+            )}>Tháng này</span>
           </div>
           <div className="flex-1 min-h-0">
             {pieData.length > 0 ? (
@@ -226,7 +257,10 @@ const Dashboard = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(value)} />
+                  <Tooltip 
+                    formatter={(value) => formatCurrency(value)}
+                    contentStyle={isDarkMode ? { backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' } : { borderRadius: '8px', border: 'none' }}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -240,10 +274,13 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="lg:col-span-8 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 h-[300px] flex flex-col"
+          className={cn(
+            "lg:col-span-8 p-5 rounded-2xl shadow-sm border h-[300px] flex flex-col",
+            isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"
+          )}
         >
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 text-sm">Hiệu suất tài chính</h3>
+            <h3 className={cn("font-bold text-sm", isDarkMode ? "text-slate-100" : "text-slate-800")}>Hiệu suất tài chính</h3>
             {stats.savingsRate > 0 && (
               <div className="text-[10px] text-emerald-600 font-black tracking-tight uppercase">
                 {stats.savingsRate.toFixed(1)}% Tỷ lệ tiết kiệm
@@ -252,16 +289,34 @@ const Dashboard = () => {
           </div>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyComparisonData}>
+              <ComposedChart data={monthlyComparisonData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#334155" : "#f1f5f9"} />
                 <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} hide />
                 <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                  cursor={{ fill: isDarkMode ? '#1e293b' : '#f8fafc' }}
+                  contentStyle={{ 
+                    borderRadius: '12px', 
+                    border: 'none', 
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', 
+                    fontSize: '12px',
+                    backgroundColor: isDarkMode ? '#1e293b' : '#fff',
+                    color: isDarkMode ? '#f8fafc' : '#0f172a'
+                  }}
                   formatter={(value) => formatCurrency(value)}
                 />
-                <Bar dataKey="income" name="Thu" fill="#10b981" radius={[4, 4, 0, 0]} barSize={30} />
-                <Bar dataKey="expense" name="Chi" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={30} />
-              </BarChart>
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
+                <Bar dataKey="income" name="Thu nhập" fill="#10b981" radius={[4, 4, 0, 0]} barSize={25} />
+                <Bar dataKey="expense" name="Chi tiêu" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={25} />
+                <Line 
+                  type="monotone" 
+                  dataKey="net" 
+                  name="Tiền ròng" 
+                  stroke={isDarkMode ? "#38bdf8" : "#3b82f6"} 
+                  strokeWidth={2} 
+                  dot={{ r: 3, fill: isDarkMode ? "#38bdf8" : "#3b82f6", strokeWidth: 0 }} 
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
@@ -274,10 +329,13 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="lg:col-span-7 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col h-[300px]"
+          className={cn(
+            "lg:col-span-7 p-5 rounded-2xl shadow-sm border flex flex-col h-[300px]",
+            isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"
+          )}
         >
           <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-slate-800 text-sm">Tăng trưởng tài sản</h3>
+            <h3 className={cn("font-bold text-sm", isDarkMode ? "text-slate-100" : "text-slate-800")}>Tăng trưởng tài sản</h3>
             {investments.length >= 12 && (
               <div className="text-[10px] text-emerald-600 font-black tracking-widest uppercase">
                 +{formatCurrency((growthData[growthData.length - 1]?.value - growthData[0]?.value) || 0)} / Năm
@@ -287,9 +345,17 @@ const Dashboard = () => {
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={growthData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#334155" : "#f1f5f9"} />
                 <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                 <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                  contentStyle={{ 
+                    borderRadius: '12px', 
+                    border: 'none', 
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', 
+                    fontSize: '12px',
+                    backgroundColor: isDarkMode ? '#1e293b' : '#fff',
+                    color: isDarkMode ? '#f8fafc' : '#0f172a'
+                  }}
                   formatter={(value) => formatCurrency(value)}
                 />
                 <Line 
@@ -309,36 +375,44 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="lg:col-span-5 bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col"
+          className={cn(
+            "lg:col-span-5 p-5 rounded-2xl shadow-sm border flex flex-col",
+            isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"
+          )}
         >
-          <h3 className="font-bold text-slate-800 text-sm mb-4">Trình quản lý rủi ro</h3>
+          <h3 className={cn("font-bold text-sm mb-4", isDarkMode ? "text-slate-100" : "text-slate-800")}>Trình quản lý rủi ro</h3>
           <div className="space-y-4">
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+            <div className={cn("p-3 rounded-xl border", isDarkMode ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-100")}>
                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Vốn gốc hiện tại</p>
-               <p className="text-lg font-bold text-slate-900">{formatCurrency(investments.reduce((sum, inv) => sum + inv.investedAmount, 0))}</p>
+               <p className={cn("text-lg font-bold", isDarkMode ? "text-slate-100" : "text-slate-900")}>
+                 {formatCurrency(investments.reduce((sum, inv) => sum + inv.investedAmount, 0))}
+               </p>
             </div>
             
             <div className="grid grid-cols-2 gap-3">
               {stats.totalProfit !== 0 && (
-                <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100 text-center">
-                  <p className="text-[10px] font-bold text-emerald-600 uppercase mb-1">Lợi nhuận gộp</p>
-                  <p className="text-sm font-black text-emerald-900">
+                <div className={cn("p-3 rounded-xl border text-center", isDarkMode ? "bg-emerald-950 border-emerald-900" : "bg-emerald-50 border-emerald-100")}>
+                  <p className={cn("text-[10px] font-bold uppercase mb-1", isDarkMode ? "text-emerald-400" : "text-emerald-600")}>Lợi nhuận gộp</p>
+                  <p className={cn("text-sm font-black", isDarkMode ? "text-emerald-300" : "text-emerald-900")}>
                     {formatCurrency(stats.totalProfit)}
                   </p>
                 </div>
               )}
               {stats.safetyMonths > 0 && (
-                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-center">
+                <div className={cn("p-3 rounded-xl border text-center", isDarkMode ? "bg-slate-800 border-slate-700" : "bg-slate-50 border-slate-100")}>
                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Dự phòng</p>
-                  <p className="text-sm font-black text-slate-900">
+                  <p className={cn("text-sm font-black", isDarkMode ? "text-slate-100" : "text-slate-900")}>
                     {stats.safetyMonths.toFixed(1)} tháng CT
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="pt-4 border-t border-slate-50">
-               <button className="w-full py-2.5 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors">Tối ưu hóa tài sản</button>
+            <div className={cn("pt-4 border-t", isDarkMode ? "border-slate-800" : "border-slate-50")}>
+               <button className={cn(
+                 "w-full py-2.5 text-xs font-bold rounded-lg transition-colors",
+                 isDarkMode ? "bg-emerald-600 text-white hover:bg-emerald-500" : "bg-slate-900 text-white hover:bg-slate-800"
+               )}>Tối ưu hóa tài sản</button>
             </div>
           </div>
         </motion.div>
@@ -347,12 +421,28 @@ const Dashboard = () => {
   );
 };
 
-const StatCard = ({ title, amount, trend, progress, color }) => {
+const StatCard = ({ title, amount, trend, progress, color, isDarkMode }) => {
   const styles = {
-    emerald: { bg: 'bg-white', text: 'text-emerald-600', border: 'border-slate-100' },
-    rose: { bg: 'bg-white', text: 'text-rose-500', border: 'border-slate-100' },
-    slate: { bg: 'bg-white', text: 'text-slate-900', border: 'border-slate-100' },
-    gradient: { bg: 'bg-emerald-600', text: 'text-white', border: 'border-emerald-700' }
+    emerald: { 
+      bg: isDarkMode ? 'bg-slate-900' : 'bg-white', 
+      text: isDarkMode ? 'text-emerald-400' : 'text-emerald-600', 
+      border: isDarkMode ? 'border-slate-800' : 'border-slate-100' 
+    },
+    rose: { 
+      bg: isDarkMode ? 'bg-slate-900' : 'bg-white', 
+      text: isDarkMode ? 'text-rose-400' : 'text-rose-500', 
+      border: isDarkMode ? 'border-slate-800' : 'border-slate-100' 
+    },
+    slate: { 
+      bg: isDarkMode ? 'bg-slate-900' : 'bg-white', 
+      text: isDarkMode ? 'text-slate-100' : 'text-slate-900', 
+      border: isDarkMode ? 'border-slate-800' : 'border-slate-100' 
+    },
+    gradient: { 
+      bg: 'bg-emerald-600', 
+      text: 'text-white', 
+      border: 'border-emerald-700' 
+    }
   };
 
   const current = styles[color];
@@ -377,8 +467,8 @@ const StatCard = ({ title, amount, trend, progress, color }) => {
         </div>
       )}
 
-      {progress && (
-        <div className="w-full bg-slate-100 h-1 mt-3 rounded-full overflow-hidden">
+      {progress !== undefined && (
+        <div className={cn("w-full h-1 mt-3 rounded-full overflow-hidden", isDarkMode ? "bg-slate-800" : "bg-slate-100")}>
           <div className={cn("h-full rounded-full", color === 'rose' ? 'bg-rose-400' : 'bg-emerald-500')} style={{ width: `${progress}%` }}></div>
         </div>
       )}

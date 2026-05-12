@@ -6,8 +6,8 @@ export const generateDemoData = () => {
   const investments = [];
   const now = new Date();
   
-  // Generate 6 months of transactions
-  for (let i = 5; i >= 0; i--) {
+  // Generate 12 months of transactions
+  for (let i = 11; i >= 0; i--) {
     const monthDate = subMonths(now, i);
     const start = startOfMonth(monthDate);
     const end = i === 0 ? now : endOfMonth(monthDate);
@@ -82,7 +82,7 @@ export const generateDemoData = () => {
     
     const netMoney = monthlyIncome - monthlyExpense;
     if (netMoney > 0 && i > 0) {
-      investments.push({
+      investments.unshift({
         id: `inv-${i}`,
         date: format(addDays(start, 24), 'yyyy-MM-dd'),
         investedAmount: Math.floor(netMoney * 0.8),
