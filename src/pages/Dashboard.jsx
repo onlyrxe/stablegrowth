@@ -13,6 +13,27 @@ const Dashboard = () => {
   const { transactions, investments, settings, isDarkMode } = useFinance();
   const [monthWindowOffset, setMonthWindowOffset] = useState(0);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [selectedYear, setSelectedYear] = useState(format(new Date(), 'yyyy'));
+  const [monthOnly, setMonthOnly] = useState(format(new Date(), 'MM'));
+  const [chartTimeframe, setChartTimeframe] = useState(12);
+
+  const timeframes = [
+    { label: '3T', value: 3 },
+    { label: '6T', value: 6 },
+    { label: '1N', value: 12 },
+    { label: '2N', value: 24 },
+    { label: '5N', value: 60 }
+  ];
+
+  const handleYearChange = (year) => {
+    setSelectedYear(year);
+    setSelectedMonth(`${year}-${monthOnly}`);
+  };
+
+  const handleMonthChange = (month) => {
+    setMonthOnly(month);
+    setSelectedMonth(`${selectedYear}-${month}`);
+  };
 
   const navigateMonthWindow = (direction) => {
     setMonthWindowOffset(prev => prev + direction);
@@ -89,12 +110,41 @@ const Dashboard = () => {
     monthTransactions.filter(t => t.type === 'expense').forEach(t => {
       categories[t.category] = (categories[t.category] || 0) + t.amount;
     });
-    return Object.entries(categories).map(([name, value]) => ({ name, value }));
+    return Object.entries(categories)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [monthTransactions]);
+
+  const weeklyData = useMemo(() => {
+    // Group transactions of selected month by week
+    const weeks = {
+      'Tuần 1': { name: 'Tuần 1', income: 0, expense: 0 },
+      'Tuần 2': { name: 'Tuần 2', income: 0, expense: 0 },
+      'Tuần 3': { name: 'Tuần 3', income: 0, expense: 0 },
+      'Tuần 4': { name: 'Tuần 4', income: 0, expense: 0 },
+      'Khác': { name: 'Khác', income: 0, expense: 0 }
+    };
+    
+    monthTransactions.forEach(t => {
+      const date = parseISO(t.date);
+      const day = date.getDate();
+      let weekKey = 'Khác';
+      if (day <= 7) weekKey = 'Tuần 1';
+      else if (day <= 14) weekKey = 'Tuần 2';
+      else if (day <= 21) weekKey = 'Tuần 3';
+      else if (day <= 28) weekKey = 'Tuần 4';
+      
+      if (t.type === 'income') weeks[weekKey].income += t.amount;
+      else weeks[weekKey].expense += t.amount;
+    });
+    
+    return Object.values(weeks);
   }, [monthTransactions]);
 
   const monthlyComparisonData = useMemo(() => {
-    // Show 12 months leading up to and including selected month
-    return [11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0].map(offset => {
+    // Show months based on chartTimeframe
+    return Array.from({ length: chartTimeframe }).map((_, i) => {
+      const offset = chartTimeframe - 1 - i;
       const d = subMonths(parseISO(selectedMonth + '-01'), offset);
       const mStr = format(d, 'yyyy-MM');
       const monthTransactions = transactions.filter(t => t.date.startsWith(mStr));
@@ -107,7 +157,7 @@ const Dashboard = () => {
         net: income - expense 
       };
     });
-  }, [selectedMonth, transactions]);
+  }, [selectedMonth, transactions, chartTimeframe]);
 
   const growthData = useMemo(() => {
     return [...investments].reverse().map(inv => ({
@@ -166,25 +216,41 @@ const Dashboard = () => {
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <div className="relative flex items-center group w-full sm:w-auto">
-            <select 
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className={cn(
-                "text-[10px] font-black cursor-pointer py-2 pl-3 pr-8 w-full sm:w-40 uppercase tracking-tighter transition-all border rounded-lg appearance-none",
-                isDarkMode 
-                  ? "bg-slate-900 border-slate-800 text-slate-100 hover:bg-slate-800 focus:ring-emerald-500" 
-                  : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100 focus:ring-emerald-500 shadow-sm"
-              )}
-            >
-              {[...Array(24)].map((_, i) => {
-                const date = subMonths(new Date(), i);
-                const val = format(date, 'yyyy-MM');
-                return <option key={val} value={val}>{format(date, 'MMMM yyyy')}</option>
-              })}
-            </select>
-            <div className="absolute right-3 pointer-events-none text-slate-400 group-hover:text-emerald-500 transition-colors">
-              <ChevronDown className="w-3 h-3" />
+          <div className="relative flex items-center group w-full sm:w-auto gap-2">
+            <div className="relative flex-1 sm:flex-none">
+              <select 
+                value={selectedYear}
+                onChange={(e) => handleYearChange(e.target.value)}
+                className={cn(
+                  "text-[10px] font-black cursor-pointer py-2 pl-3 pr-8 w-full sm:w-24 uppercase tracking-tighter transition-all border rounded-lg appearance-none",
+                  isDarkMode 
+                    ? "bg-slate-900 border-slate-800 text-slate-100 hover:bg-slate-800 focus:ring-emerald-500" 
+                    : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100 focus:ring-emerald-500 shadow-sm"
+                )}
+              >
+                {[2024, 2025, 2026].map(year => (
+                  <option key={year} value={year.toString()}>Năm {year}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+            </div>
+
+            <div className="relative flex-1 sm:flex-none">
+              <select 
+                value={monthOnly}
+                onChange={(e) => handleMonthChange(e.target.value)}
+                className={cn(
+                  "text-[10px] font-black cursor-pointer py-2 pl-3 pr-8 w-full sm:w-32 uppercase tracking-tighter transition-all border rounded-lg appearance-none",
+                  isDarkMode 
+                    ? "bg-slate-900 border-slate-800 text-slate-100 hover:bg-slate-800 focus:ring-emerald-500" 
+                    : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100 focus:ring-emerald-500 shadow-sm"
+                )}
+              >
+                {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
+                  <option key={m} value={m}>Tháng {parseInt(m)}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
             </div>
           </div>
         </div>
@@ -247,7 +313,7 @@ const Dashboard = () => {
                   <Pie
                     data={pieData}
                     cx="50%"
-                    cy="50%"
+                    cy="45%"
                     innerRadius={50}
                     outerRadius={65}
                     paddingAngle={2}
@@ -259,7 +325,12 @@ const Dashboard = () => {
                   </Pie>
                   <Tooltip 
                     formatter={(value) => formatCurrency(value)}
-                    contentStyle={isDarkMode ? { backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' } : { borderRadius: '8px', border: 'none' }}
+                    contentStyle={isDarkMode ? { backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc', fontSize: '10px' } : { borderRadius: '8px', border: 'none', fontSize: '10px' }}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    iconType="circle" 
+                    wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', paddingTop: '10px', textTransform: 'uppercase' }} 
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -269,25 +340,71 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Bar Chart Comparison */}
+        {/* Weekly Chart */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.05 }}
           className={cn(
             "lg:col-span-8 p-5 rounded-2xl shadow-sm border h-[300px] flex flex-col",
             isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"
           )}
         >
           <div className="flex justify-between items-center mb-4">
-            <h3 className={cn("font-bold text-sm", isDarkMode ? "text-slate-100" : "text-slate-800")}>Hiệu suất tài chính</h3>
-            {stats.savingsRate > 0 && (
-              <div className="text-[10px] text-emerald-600 font-black tracking-tight uppercase">
-                {stats.savingsRate.toFixed(1)}% Tỷ lệ tiết kiệm
-              </div>
-            )}
+            <h3 className={cn("font-bold text-sm", isDarkMode ? "text-slate-100" : "text-slate-800")}>Thu chi theo tuần</h3>
+            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Tháng {format(parseISO(selectedMonth + '-01'), 'MM/yyyy')}</div>
           </div>
           <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={weeklyData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#334155" : "#f1f5f9"} />
+                <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} />
+                <YAxis stroke="#94a3b8" fontSize={9} tickLine={false} axisLine={false} hide />
+                <Tooltip 
+                  cursor={{ fill: isDarkMode ? '#1e293b' : '#f8fafc' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', fontSize: '10px', backgroundColor: isDarkMode ? '#1e293b' : '#fff' }}
+                  formatter={(value) => formatCurrency(value)}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '9px', paddingTop: '5px' }} />
+                <Bar dataKey="income" name="Thu nhập" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expense" name="Chi tiêu" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Bar Chart Comparison */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className={cn(
+            "lg:col-span-12 p-5 rounded-2xl shadow-sm border h-[350px] flex flex-col",
+            isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"
+          )}
+        >
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-4">
+                <h3 className={cn("font-bold text-sm", isDarkMode ? "text-slate-100" : "text-slate-800")}>Hiệu suất tài chính</h3>
+                <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-800 p-0.5 rounded-lg border dark:border-slate-700">
+                  {timeframes.map(tf => (
+                    <button
+                      key={tf.value}
+                      onClick={() => setChartTimeframe(tf.value)}
+                      className={cn(
+                        "px-2 py-1 rounded text-[9px] font-black transition-all",
+                        chartTimeframe === tf.value
+                          ? (isDarkMode ? "bg-emerald-500 text-slate-900 shadow-sm" : "bg-slate-900 text-white shadow-sm")
+                          : (isDarkMode ? "text-slate-400 hover:text-slate-200" : "text-slate-500 hover:text-slate-900")
+                      )}
+                    >
+                      {tf.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={monthlyComparisonData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? "#334155" : "#f1f5f9"} />

@@ -87,7 +87,8 @@ const Investments = () => {
         const date = format(new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000), 'dd/MM');
         // Random walk for price movement
         const prevValue = i === 0 ? baseValue : data[i - 1].value;
-        const change = (Math.random() - 0.48) * 0.02; // Slight upward bias
+        const volatility = asset.id === 'stocks' ? 0.08 : asset.id === 'gold' ? 0.04 : 0.02;
+        const change = (Math.random() - 0.45) * volatility; // More dramatic swings
         data.push({ date, value: Math.floor(prevValue * (1 + change)) });
       }
       return { ...asset, data };
@@ -418,11 +419,8 @@ const Investments = () => {
               </div>
             </div>
             
-            <div className={cn("mt-auto pt-6 border-t", isDarkMode ? "border-slate-800" : "border-slate-50")}>
-               <button className={cn(
-                 "w-full text-[11px] font-black px-4 py-3 rounded-xl transition-all uppercase tracking-wider shadow-md active:scale-95",
-                 isDarkMode ? "bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-900/20" : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200"
-               )}>Cập nhật thiết lập</button>
+            <div className={cn("mt-auto pt-6 border-t font-medium text-[10px] italic text-center", isDarkMode ? "text-slate-500" : "text-slate-400")}>
+               Dữ liệu được cập nhật tự động khi thay đổi thiết lập
             </div>
           </div>
         </motion.div>
