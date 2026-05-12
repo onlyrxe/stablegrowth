@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trash2, Search, Download, ArrowUpCircle, ArrowDownCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, Search, Download, ArrowUpCircle, ArrowDownCircle, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { formatCurrency, cn } from '../utils/helpers';
 import { format, subMonths, addMonths, parseISO } from 'date-fns';
@@ -20,7 +20,28 @@ const Transactions = () => {
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [filterYear, setFilterYear] = useState(format(new Date(), 'yyyy'));
+  const [filterMonthOnly, setFilterMonthOnly] = useState(format(new Date(), 'MM'));
   const [monthWindowOffset, setMonthWindowOffset] = useState(0);
+
+  const handleMonthSelect = (mStr) => {
+    setFilterMonth(mStr);
+    const [year, month] = mStr.split('-');
+    setFilterYear(year);
+    setFilterMonthOnly(month);
+  };
+
+  const handleYearChange = (year) => {
+    setFilterYear(year);
+    const newMonth = `${year}-${filterMonthOnly}`;
+    setFilterMonth(newMonth);
+  };
+
+  const handleMonthChange = (month) => {
+    setFilterMonthOnly(month);
+    const newMonth = `${filterYear}-${month}`;
+    setFilterMonth(newMonth);
+  };
 
   const navigateMonthWindow = (direction) => {
     setMonthWindowOffset(prev => prev + direction);
@@ -250,7 +271,7 @@ const Transactions = () => {
               {displayedMonths.map(({ mStr, label }) => (
                 <button
                   key={mStr}
-                  onClick={() => setFilterMonth(mStr)}
+                  onClick={() => handleMonthSelect(mStr)}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-xs font-black transition-all border whitespace-nowrap",
                     filterMonth === mStr 
@@ -272,15 +293,36 @@ const Transactions = () => {
             >
               <ChevronRight className="w-4 h-4" />
             </button>
-            <input 
-              type="month" 
-              value={filterMonth} 
-              onChange={(e) => setFilterMonth(e.target.value)} 
-              className={cn(
-                "px-2 py-1 border rounded-lg text-xs outline-none w-24 font-bold",
-                isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100" : "bg-white border-slate-200 text-slate-900"
-              )} 
-            />
+            <div className="flex items-center gap-2">
+               <div className="relative">
+                 <select 
+                   value={filterYear}
+                   onChange={(e) => handleYearChange(e.target.value)}
+                   className={cn(
+                     "px-2 py-1.5 border rounded-lg text-[10px] outline-none font-black appearance-none pr-7 uppercase tracking-tighter",
+                     isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100" : "bg-white border-slate-200 text-slate-900 shadow-sm"
+                   )} 
+                 >
+                   {[2024, 2025, 2026].map(y => <option key={y} value={y.toString()}>Năm {y}</option>)}
+                 </select>
+                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+               </div>
+               <div className="relative">
+                 <select 
+                   value={filterMonthOnly}
+                   onChange={(e) => handleMonthChange(e.target.value)}
+                   className={cn(
+                     "px-2 py-1.5 border rounded-lg text-[10px] outline-none font-black appearance-none pr-7 uppercase tracking-tighter w-24",
+                     isDarkMode ? "bg-slate-800 border-slate-700 text-slate-100" : "bg-white border-slate-200 text-slate-900 shadow-sm"
+                   )} 
+                 >
+                   {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map(m => (
+                     <option key={m} value={m}>Tháng {parseInt(m)}</option>
+                   ))}
+                 </select>
+                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400 pointer-events-none" />
+               </div>
+            </div>
           </div>
           <div className="flex items-center space-x-2 w-full sm:w-auto">
             <select 

@@ -25,14 +25,23 @@ const Dashboard = () => {
     { label: '5N', value: 60 }
   ];
 
+  const handleMonthSelect = (mStr) => {
+    setSelectedMonth(mStr);
+    const [year, month] = mStr.split('-');
+    setSelectedYear(year);
+    setMonthOnly(month);
+  };
+
   const handleYearChange = (year) => {
     setSelectedYear(year);
-    setSelectedMonth(`${year}-${monthOnly}`);
+    const newMonth = `${year}-${monthOnly}`;
+    setSelectedMonth(newMonth);
   };
 
   const handleMonthChange = (month) => {
     setMonthOnly(month);
-    setSelectedMonth(`${selectedYear}-${month}`);
+    const newMonth = `${selectedYear}-${month}`;
+    setSelectedMonth(newMonth);
   };
 
   const navigateMonthWindow = (direction) => {
@@ -193,7 +202,7 @@ const Dashboard = () => {
               {displayedMonths.map(({ mStr, label }) => (
                 <button
                   key={mStr}
-                  onClick={() => setSelectedMonth(mStr)}
+                  onClick={() => handleMonthSelect(mStr)}
                   className={cn(
                     "px-3 py-1.5 rounded-lg text-[10px] font-black transition-all border whitespace-nowrap uppercase tracking-tighter",
                     selectedMonth === mStr 

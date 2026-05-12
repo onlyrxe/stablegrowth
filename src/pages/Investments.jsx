@@ -144,6 +144,10 @@ const Investments = () => {
               </div>
             </div>
 
+            <div className={cn("text-[10px] font-medium italic text-slate-400 pl-1", isDarkMode ? "text-slate-500" : "text-slate-400")}>
+               * Dữ liệu được cập nhật tự động khi thay đổi thiết lập
+            </div>
+
             <div className="space-y-8">
               {Object.entries(settings.allocation).map(([key, value]) => (
                 <div key={key} className="space-y-3">
@@ -419,9 +423,6 @@ const Investments = () => {
               </div>
             </div>
             
-            <div className={cn("mt-auto pt-6 border-t font-medium text-[10px] italic text-center", isDarkMode ? "text-slate-500" : "text-slate-400")}>
-               Dữ liệu được cập nhật tự động khi thay đổi thiết lập
-            </div>
           </div>
         </motion.div>
       </div>
