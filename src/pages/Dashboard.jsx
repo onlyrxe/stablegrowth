@@ -7,7 +7,7 @@ import { useFinance } from '../context/FinanceContext';
 import { formatCurrency, cn } from '../utils/helpers';
 import { addMonths } from 'date-fns';
 
-const COLORS = ['#10b981', '#34d399', '#94a3b8', '#cbd5e1', '#8b5cf6', '#ec4899', '#64748b'];
+const COLORS = ['#3b82f6', '#8b5cf6', '#f43f5e', '#f97316', '#10b981', '#06b6d4', '#64748b'];
 
 const Dashboard = () => {
   const { transactions, investments, settings, isDarkMode } = useFinance();
@@ -125,10 +125,10 @@ const Dashboard = () => {
           <p className="text-xs text-slate-500 font-medium tracking-tight">Tháng {format(parseISO(selectedMonth + '-01'), 'MM, yyyy')}</p>
         </div>
         <div className={cn(
-          "flex flex-wrap items-center gap-1.5 p-1.5 rounded-xl shadow-sm overflow-x-auto scrollbar-hide border",
+          "flex flex-wrap items-center justify-between sm:justify-start gap-1.5 p-1.5 rounded-xl shadow-sm overflow-x-auto scrollbar-hide border w-full sm:w-auto",
           isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200"
         )}>
-          <div className={cn("flex items-center gap-1 pr-1.5 border-r mr-1", isDarkMode ? "border-slate-800" : "border-slate-100")}>
+          <div className={cn("hidden sm:flex items-center gap-1 pr-1.5 border-r mr-1", isDarkMode ? "border-slate-800" : "border-slate-100")}>
             <button 
               onClick={() => navigateMonthWindow(1)}
               className={cn(
@@ -166,24 +166,24 @@ const Dashboard = () => {
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <div className="relative flex items-center group">
-            <input 
-              type="month" 
+          <div className="relative flex items-center group w-full sm:w-auto">
+            <select 
               value={selectedMonth}
-              onClick={(e) => e.target.showPicker && e.target.showPicker()}
-              onChange={(e) => {
-                if (e.target.value) {
-                  setSelectedMonth(e.target.value);
-                }
-              }}
+              onChange={(e) => setSelectedMonth(e.target.value)}
               className={cn(
-                "text-[10px] font-black cursor-pointer py-1.5 pl-3 pr-8 w-32 uppercase tracking-tighter transition-all border rounded-lg",
+                "text-[10px] font-black cursor-pointer py-2 pl-3 pr-8 w-full sm:w-40 uppercase tracking-tighter transition-all border rounded-lg appearance-none",
                 isDarkMode 
                   ? "bg-slate-900 border-slate-800 text-slate-100 hover:bg-slate-800 focus:ring-emerald-500" 
-                  : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100 focus:ring-emerald-500"
+                  : "bg-slate-50 border-slate-100 text-slate-600 hover:bg-slate-100 focus:ring-emerald-500 shadow-sm"
               )}
-            />
-            <div className="absolute right-2 pointer-events-none text-slate-400 group-hover:text-emerald-500 transition-colors">
+            >
+              {[...Array(24)].map((_, i) => {
+                const date = subMonths(new Date(), i);
+                const val = format(date, 'yyyy-MM');
+                return <option key={val} value={val}>{format(date, 'MMMM yyyy')}</option>
+              })}
+            </select>
+            <div className="absolute right-3 pointer-events-none text-slate-400 group-hover:text-emerald-500 transition-colors">
               <ChevronDown className="w-3 h-3" />
             </div>
           </div>

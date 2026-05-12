@@ -78,9 +78,25 @@ const Investments = () => {
   const totalInvested = investments.reduce((sum, inv) => sum + inv.investedAmount, 0);
   const profit = totalCurrentValue - totalInvested;
 
+  // Generate mock daily data for the 5 asset charts
+  const dailyData = useMemo(() => {
+    return ASSET_TYPES.map(asset => {
+      const baseValue = historyData[historyData.length - 1]?.[asset.id] || 10000000;
+      const data = [];
+      for (let i = 0; i < 30; i++) {
+        const date = format(new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000), 'dd/MM');
+        // Random walk for price movement
+        const prevValue = i === 0 ? baseValue : data[i - 1].value;
+        const change = (Math.random() - 0.48) * 0.02; // Slight upward bias
+        data.push({ date, value: Math.floor(prevValue * (1 + change)) });
+      }
+      return { ...asset, data };
+    });
+  }, [historyData]);
+
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div className="flex justify-between items-end">
+    <div className="p-6 max-w-7xl mx-auto space-y-6 text-slate-900">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-2">
         <div>
           <h1 className={cn("text-xl font-bold tracking-tight", isDarkMode ? "text-slate-100" : "text-slate-900")}>Đầu tư tự động</h1>
           <div className="flex items-center gap-2 mt-1">
@@ -102,9 +118,9 @@ const Investments = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Settings & Allocation - High Density */}
-        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Settings & Allocation - Main Content */}
+        <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-7 space-y-6">
           <div className={cn(
             "p-6 rounded-2xl border shadow-sm space-y-8",
             isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"
@@ -291,82 +307,123 @@ const Investments = () => {
               </ResponsiveContainer>
             </div>
           </div>
-
-          <div className={cn(
-            "p-5 rounded-2xl border flex items-center justify-between",
-            isDarkMode ? "bg-emerald-950 border-emerald-900" : "bg-emerald-50 border-emerald-100"
-          )}>
-             <div className="flex items-center gap-3">
-                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shadow-sm", isDarkMode ? "bg-slate-900 text-emerald-400" : "bg-white text-emerald-600")}>
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-                <div>
-                   <p className={cn("text-[10px] font-bold uppercase tracking-widest leading-none mb-1", isDarkMode ? "text-emerald-400" : "text-emerald-700")}>Dự kiến đầu tư kỳ tới</p>
-                   <p className={cn("text-sm font-bold italic", isDarkMode ? "text-emerald-300" : "text-emerald-800")}>Lấy từ Tiền ròng ghi nhận cuối tháng</p>
-                </div>
-             </div>
-             <button className={cn(
-               "text-[11px] font-black px-4 py-2 rounded-lg transition-all uppercase tracking-wider shadow-md active:scale-95",
-               isDarkMode ? "bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-900/20" : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200"
-             )}>Cập nhật thiết lập</button>
-          </div>
         </motion.div>
 
-        {/* Info & Side - High Density */}
-        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-4 space-y-6">
+        {/* Sidebar Status Column */}
+        <motion.div initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-5 space-y-6">
           <div className={cn(
-            "p-5 rounded-2xl border shadow-sm h-full flex flex-col",
+            "p-6 rounded-2xl border shadow-sm space-y-8 h-full flex flex-col",
             isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-100"
           )}>
-             <h3 className={cn("text-sm font-bold mb-6", isDarkMode ? "text-slate-100" : "text-slate-800")}>Phân bổ danh mục</h3>
-             <div className="h-[200px]">
-               <ResponsiveContainer width="100%" height="100%">
-                 <PieChart>
-                    <Pie data={allocationData} dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={65} paddingAngle={2}>
-                      {allocationData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ 
-                        fontSize: '10px !important',
-                        backgroundColor: isDarkMode ? '#1e293b' : '#fff',
-                        border: 'none',
-                        borderRadius: '8px'
-                      }} 
-                    />
-                 </PieChart>
-               </ResponsiveContainer>
-             </div>
-             <div className="space-y-2 mt-4">
-                {allocationData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                       <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: item.color }} />
-                       <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">{item.name}</span>
+            {/* 1. Net Value Header */}
+            <div>
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <p className={cn("text-[10px] font-bold uppercase tracking-widest mb-1 opacity-80", isDarkMode ? "text-slate-500" : "text-slate-400")}>Giá trị ròng hiện tại</p>
+                  <h2 className={cn("text-2xl font-black tracking-tight", isDarkMode ? "text-slate-100" : "text-slate-900")}>{formatCurrency(totalCurrentValue)}</h2>
+                </div>
+                <div className={cn(
+                  "px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest",
+                  profit >= 0 ? "bg-emerald-500/10 text-emerald-500" : "bg-rose-500/10 text-rose-500"
+                )}>
+                  {profit >= 0 ? '+' : ''}{((profit / totalInvested) * 100).toFixed(2)}%
+                </div>
+              </div>
+              <div className={cn("flex justify-between items-center border-t border-b py-3", isDarkMode ? "border-slate-800" : "border-slate-50")}>
+                 <div>
+                    <p className={cn("text-[9px] font-bold uppercase text-slate-400")}>Lợi nhuận</p>
+                    <p className={cn("text-xs font-bold", isDarkMode ? "text-emerald-400" : "text-emerald-500")}>{(profit >= 0 ? '+' : '') + formatCurrency(profit)}</p>
+                 </div>
+                 <div className="text-right">
+                    <p className={cn("text-[9px] font-bold uppercase text-slate-400")}>Vốn đã nạp</p>
+                    <p className={cn("text-xs font-bold", isDarkMode ? "text-slate-400" : "text-slate-600")}>{formatCurrency(totalInvested)}</p>
+                 </div>
+              </div>
+            </div>
+
+            {/* 2. Portfolio Allocation Chart */}
+            <div>
+              <h3 className={cn("text-xs font-black uppercase tracking-widest mb-4", isDarkMode ? "text-slate-300" : "text-slate-500")}>Phân bổ danh mục</h3>
+              <div className="h-[180px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                     <Pie data={allocationData} dataKey="value" cx="50%" cy="50%" innerRadius={45} outerRadius={60} paddingAngle={2}>
+                       {allocationData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
+                     </Pie>
+                     <Tooltip 
+                       contentStyle={{ 
+                         fontSize: '10px',
+                         backgroundColor: isDarkMode ? '#1e293b' : '#fff',
+                         border: 'none',
+                         borderRadius: '8px'
+                       }} 
+                     />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4 px-2">
+                 {allocationData.map((item) => (
+                   <div key={item.name} className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/50 dark:bg-slate-800/30">
+                     <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">{item.name}</span>
+                     </div>
+                     <span className={cn("text-[10px] font-black", isDarkMode ? "text-slate-100" : "text-slate-900")}>{item.value}%</span>
+                   </div>
+                 ))}
+              </div>
+            </div>
+
+            {/* 3. Daily Asset Charts (Vertical Stack) */}
+            <div className="space-y-4 pt-2">
+              <h3 className={cn("text-[10px] font-black uppercase tracking-widest pl-1", isDarkMode ? "text-slate-400" : "text-slate-500")}>Hiệu suất 30 ngày qua</h3>
+              <div className="space-y-3">
+                {dailyData.map((asset) => (
+                  <div
+                    key={asset.id}
+                    className={cn(
+                      "p-3 rounded-xl border flex items-center gap-4",
+                      isDarkMode ? "bg-slate-800/50 border-slate-800" : "bg-slate-50/30 border-slate-100"
+                    )}
+                  >
+                    <div className="w-1/3">
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">{asset.name}</p>
+                      <p className={cn("text-xs font-black tracking-tight", isDarkMode ? "text-slate-100" : "text-slate-900")}>
+                        {formatCurrency(asset.data[asset.data.length - 1].value)}
+                      </p>
+                      <div className={cn(
+                        "text-[8px] font-black mt-0.5",
+                        asset.data[asset.data.length - 1].value >= asset.data[0].value ? "text-emerald-500" : "text-rose-500"
+                      )}>
+                        {asset.data[asset.data.length - 1].value >= asset.data[0].value ? '↑' : '↓'}
+                        {Math.abs(((asset.data[asset.data.length - 1].value / asset.data[0].value - 1) * 100)).toFixed(1)}%
+                      </div>
                     </div>
-                    <span className={cn("text-[10px] font-black", isDarkMode ? "text-slate-300" : "text-slate-900")}>{item.value}%</span>
+                    <div className="flex-1 h-10">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={asset.data}>
+                          <Line 
+                            type="monotone" 
+                            dataKey="value" 
+                            stroke={asset.color} 
+                            strokeWidth={1.5} 
+                            dot={false}
+                            isAnimationActive={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
                 ))}
-             </div>
-             
-             <div className={cn("mt-auto pt-6 border-t space-y-4", isDarkMode ? "border-slate-800" : "border-slate-50")}>
-                <div className={cn(
-                  "p-4 rounded-xl shadow-lg",
-                  isDarkMode ? "bg-slate-100 text-slate-900 shadow-slate-950/20" : "bg-slate-900 text-white shadow-slate-100"
-                )}>
-                    <p className={cn("text-[10px] font-bold uppercase tracking-widest mb-1.5 opacity-80", isDarkMode ? "text-slate-500" : "text-slate-400")}>Giá trị ròng</p>
-                    <h2 className="text-xl font-black mb-4 tracking-tight">{formatCurrency(totalCurrentValue)}</h2>
-                    <div className={cn("flex justify-between items-center border-t pt-3", isDarkMode ? "border-slate-200" : "border-slate-800")}>
-                       <div>
-                          <p className={cn("text-[9px] font-bold uppercase", isDarkMode ? "text-slate-500" : "text-slate-400")}>Lợi nhuận</p>
-                          <p className={cn("text-xs font-bold", isDarkMode ? "text-emerald-600" : "text-emerald-400")}>{(profit >= 0 ? '+' : '') + formatCurrency(profit)}</p>
-                       </div>
-                       <div className="text-right">
-                          <p className={cn("text-[9px] font-bold uppercase", isDarkMode ? "text-slate-500" : "text-slate-400")}>Vốn đầu tư</p>
-                          <p className="text-xs font-bold">{formatCurrency(totalInvested)}</p>
-                       </div>
-                    </div>
-                </div>
-             </div>
+              </div>
+            </div>
+            
+            <div className={cn("mt-auto pt-6 border-t", isDarkMode ? "border-slate-800" : "border-slate-50")}>
+               <button className={cn(
+                 "w-full text-[11px] font-black px-4 py-3 rounded-xl transition-all uppercase tracking-wider shadow-md active:scale-95",
+                 isDarkMode ? "bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-900/20" : "bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200"
+               )}>Cập nhật thiết lập</button>
+            </div>
           </div>
         </motion.div>
       </div>

@@ -1,10 +1,11 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { useNavigate, NavLink } from 'react-router-dom';
 import { LayoutDashboard, ReceiptText, TrendingUp, RefreshCw, Sun, Moon } from 'lucide-react';
 import { cn } from '../utils/helpers';
 import { useFinance } from '../context/FinanceContext';
 
 const Navbar = () => {
+  const navigate = useNavigate();
   const { resetApp, isDarkMode, toggleDarkMode } = useFinance();
   const navItems = [
     { name: 'Tổng quan', path: '/', icon: LayoutDashboard },
@@ -63,6 +64,7 @@ const Navbar = () => {
                onClick={() => {
                  if(window.confirm('Bạn có chắc chắn muốn xóa toàn bộ dữ liệu và bắt đầu lại?')) {
                    resetApp();
+                   navigate('/');
                  }
                }}
                className={cn(
