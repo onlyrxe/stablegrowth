@@ -4,7 +4,7 @@ import { seededRandom, defaultCategories } from './helpers';
 export const generateDemoData = () => {
   const transactions = [];
   const investments = [];
-  const now = new Date();
+  const now = new Date('2026-12-31');
   
   // Generate 12 months of transactions
   for (let i = 11; i >= 0; i--) {

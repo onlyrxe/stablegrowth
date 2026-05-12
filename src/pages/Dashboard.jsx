@@ -106,7 +106,7 @@ const Dashboard = () => {
         expense, 
         net: income - expense 
       };
-    }).reverse();
+    });
   }, [selectedMonth, transactions]);
 
   const growthData = useMemo(() => {
@@ -306,8 +306,8 @@ const Dashboard = () => {
                   formatter={(value) => formatCurrency(value)}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
-                <Bar dataKey="income" name="Thu nhập" fill="#10b981" radius={[4, 4, 0, 0]} barSize={25} />
-                <Bar dataKey="expense" name="Chi tiêu" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={25} />
+                <Bar dataKey="income" name="Thu nhập" fill="#10b981" radius={[4, 4, 0, 0]} barSize={15} />
+                <Bar dataKey="expense" name="Chi tiêu" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={15} />
                 <Line 
                   type="monotone" 
                   dataKey="net" 

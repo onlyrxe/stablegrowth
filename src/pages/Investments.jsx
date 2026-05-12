@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, BarChart, Bar } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, Legend, BarChart, Bar, CartesianGrid } from 'recharts';
 import { TrendingUp, Settings, ChevronDown, Check, Coins, Filter } from 'lucide-react';
 import { useFinance } from '../context/FinanceContext';
 import { formatCurrency, cn } from '../utils/helpers';
