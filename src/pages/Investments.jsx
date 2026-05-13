@@ -324,7 +324,7 @@ const Investments = () => {
             <div>
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <p className={cn("text-[10px] font-bold uppercase tracking-widest mb-1 opacity-80", isDarkMode ? "text-slate-500" : "text-slate-400")}>Giá trị ròng hiện tại</p>
+                  <p className={cn("text-[10px] font-bold uppercase tracking-widest mb-1 opacity-80", isDarkMode ? "text-slate-500" : "text-slate-400")}>Giá trị hiện tại</p>
                   <h2 className={cn("text-2xl font-black tracking-tight", isDarkMode ? "text-slate-100" : "text-slate-900")}>{formatCurrency(totalCurrentValue)}</h2>
                 </div>
                 <div className={cn(
